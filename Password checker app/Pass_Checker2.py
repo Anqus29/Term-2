@@ -1,6 +1,9 @@
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 import re
+import secrets
+import string
+import random
 
 class PasswordChecker(ttk.Frame):
     def __init__(self, master=None):
@@ -50,7 +53,7 @@ class PasswordChecker(ttk.Frame):
 
         # Password entry text
         self.instruction = ttk.Label(
-            self, 
+            self,
             text="Enter your password:", 
             font=("Arial", 14)
             )
@@ -60,18 +63,42 @@ class PasswordChecker(ttk.Frame):
             pady=15
             )
 
+        self.password_entry_frame = ttk.Frame(self)
+        self.password_entry_frame.pack(
+            side=TOP,
+            padx=20,
+            pady=10,
+            fill='x'
+            )
+
         # Password entry field
         self.password_entry = ttk.Entry(
-            self, 
-            show="*", 
-            font=("Arial", 14), 
-            bootstyle="success"
+            self.password_entry_frame,
+            font=("Arial", 16),           # Slightly larger font
+            bootstyle="rounded-success",  # Rounded and green
+            show="*",
+            width=24,                     # Wider entry field
             )
         self.password_entry.pack(
-            side=TOP, 
-            padx=20, 
-            pady=10
-            )
+            side=LEFT,
+            fill='x',
+            expand=True,
+            padx=2,
+            pady=2
+        )
+        
+        self.show_password_var = ttk.BooleanVar(value=False)
+
+        # Show password checkbox
+        self.show_password_check = ttk.Checkbutton(
+            self.password_entry_frame,
+            text="Show password",
+            variable=self.show_password_var,
+            command=self.toggle_password,
+            bootstyle="success-toolbutton"
+        )
+        self.show_password_check.pack(side=LEFT, padx=5)
+
 
         # Button frame
         self.button_frame = ttk.Frame(self)
@@ -120,11 +147,13 @@ class PasswordChecker(ttk.Frame):
             pady=10
             )
 
+        # Password length slider
         self.password_length = ttk.Scale(
-            self.button_frame, 
-            from_=8, 
-            to=20, 
-            orient=HORIZONTAL, 
+            self, 
+            from_=6, 
+            to=24, 
+            orient=HORIZONTAL,
+            length=300, 
             bootstyle="success"
             )
         self.password_length.pack(
@@ -134,13 +163,13 @@ class PasswordChecker(ttk.Frame):
             )
 
         # Result percentage
-        self.result_slider = ttk.Progressbar(
+        self.password_strength = ttk.Progressbar(
             self, 
             orient=HORIZONTAL, 
             length=300, 
             bootstyle="success"
             )
-        self.result_slider.pack(
+        self.password_strength.pack(
             side=TOP, 
             padx=20, 
             pady=50
@@ -165,11 +194,11 @@ class PasswordChecker(ttk.Frame):
         password_issues = []
 
         checks = [
-            (r".{8,}", 1, "Password must be at least 8 characters long"),
+            (r".{8,}", 3, "Password must be at least 8 characters long"),
             (r"(?=.*[A-Z])", 2, "Password must contain at least one uppercase letter"),
             (r"(?=.*[a-z])", 2, "Password must contain at least one lowercase letter"),
             (r"(?=.*\d)", 3, "Password must contain at least one digit"),
-            (r"(?=.*[@$!%*?&])", 3, "Password must contain at least one special character"),
+            (r"(?=.*[!@#$%^&*-_=+:,.?])", 3, "Password must contain at least one special character"),
         ]
 
         for pattern, score, warning in checks:
@@ -178,9 +207,20 @@ class PasswordChecker(ttk.Frame):
             else:
                 password_issues.append(warning)
 
-        if re.search(r"[{}<>]", password):
-            password_issues.append("For security reasons password must not contain any of the following characters: {}<>")
-        self.result_slider['value'] = (password_score / 11) * 100
+        if self.common_passwords(password):
+            self.password_issues_label.config(
+                text="This password is too common. Please choose a different one.",
+                bootstyle="DANGER"
+            )
+            self.password_strength['value'] = 0
+            return
+
+        if re.search(r"[{}\[\]()<>\';\"\\\/|]", password):
+            password_issues.append(
+                "For security reasons password must not contain any of the following characters: { } < > [ ] ( ) ; ' \" \\ / |"
+                )
+                                   
+        self.password_strength['value'] = (password_score / 13) * 100
         if password_issues:
             self.password_issues_label.config(text="\n".join(password_issues))
         else:
@@ -189,8 +229,28 @@ class PasswordChecker(ttk.Frame):
     def generate_password(self):
 
         self.password_entry.delete(0, 'end')
+        length = int(self.password_length.get())
+
+        # Gets possible characters for the password
+        lowers = string.ascii_lowercase
+        uppers = string.ascii_uppercase
+        digits = string.digits
+        punctuation = '!@#$%^&*-_=+:,.?'
+
+        # Ensure the password contains at least one of each character type
+        password_characters = [
+            secrets.choice(lowers),
+            secrets.choice(uppers),
+            secrets.choice(digits),
+            secrets.choice(punctuation)
+        ]
         
-        self.password_entry.insert(0, "GeneratedPassword123!")
+        # Fill the rest of the password with random characters
+        all_characters = lowers + uppers + digits + punctuation
+        password_characters += [secrets.choice(all_characters) for _ in range(length - 4)]
+        random.shuffle(password_characters)
+
+        self.password_entry.insert(0, ''.join(password_characters))
         self.check_password()
 
     def save_password(self):
@@ -199,6 +259,21 @@ class PasswordChecker(ttk.Frame):
             self.master.clipboard_clear()
             self.master.clipboard_append(password)
             self.master.update()
+
+    def common_passwords(self, password):
+        try:
+            with open("common_passwords.txt") as f:
+                common_passwords = f.read().splitlines()
+            return password in common_passwords
+        except FileNotFoundError:
+            return False
+    
+    def toggle_password(self):
+        if self.password_entry.cget('show') == '*':
+            self.password_entry.config(show='')
+        else:
+            self.password_entry.config(show='*')
+
 
 if __name__ == "__main__":
     app = ttk.Window(themename="superhero", title="Password Checker", size=(1080, 720))
