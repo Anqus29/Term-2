@@ -12,18 +12,19 @@ class PasswordChecker(ttk.Frame):
         self.pack(fill='both', expand=True)
         self.load_common_passwords()
         self.create_widgets()
-
+        
+    
     def load_common_passwords(self):
         try:
-            with open("common_passwords.txt", "r") as file:
+            with open("Password checker app/common_passwords.txt", "r") as file:
                 self.common_passwords_set = set(line.strip().lower() for line in file)
         except FileNotFoundError:
-            print("common_passwords.txt not found. Please ensure the file exists in the same directory as this script.")
+            print("Password checker app/common_passwords.txt not found. Please ensure the file exists in the same directory as this script.")
             self.common_passwords_set = set()
         except Exception as e:
             print(f"An error occurred while loading common passwords: {e}")
             self.common_passwords_set = set()
-    
+        
 
     
     def create_widgets(self):
@@ -101,6 +102,8 @@ class PasswordChecker(ttk.Frame):
             padx=2,
             pady=2
         )
+
+        self.password_entry.bind("<Return>", lambda event: self.check_password())
         
         self.show_password_var = ttk.BooleanVar(value=False)
 
@@ -125,6 +128,7 @@ class PasswordChecker(ttk.Frame):
             text="Check Password", 
             command=self.check_password, 
             bootstyle="success-OUTLINE"
+            
         )
         self.check_button.pack(side=LEFT, padx=5)
 
@@ -200,6 +204,39 @@ class PasswordChecker(ttk.Frame):
             padx=20, 
             pady=10
             )
+        
+        # Bottom frame for buttons
+        self.bottom_frame = ttk.Frame(self)
+        self.bottom_frame.pack(
+            side=BOTTOM, 
+            padx=20,
+            pady=20,
+            fill='x'
+            )
+        
+        # Settings button
+        self.info_button = ttk.Button(
+            self.bottom_frame,
+            text="Settings", 
+            command=self.settings_window, 
+            bootstyle="success-OUTLINE"
+        )
+        self.info_button.pack(
+            side=RIGHT,
+            padx=20
+        )
+
+        # Information button
+        self.info_button = ttk.Button(
+            self.bottom_frame,
+            text="Information", 
+            command=self.info_window, 
+            bootstyle="success-OUTLINE"
+        )
+        self.info_button.pack(
+            side=RIGHT
+        )
+        
 
     def check_password(self):
         password = self.password_entry.get()
@@ -272,6 +309,7 @@ class PasswordChecker(ttk.Frame):
         self.password_entry.insert(0, ''.join(password_characters))
         self.check_password()
 
+    # Save password to clipboard
     def save_password(self):
         password = self.password_entry.get()
         if password:
@@ -279,14 +317,93 @@ class PasswordChecker(ttk.Frame):
             self.master.clipboard_append(password)
             self.master.update()
 
+    # Check if the password is common
     def common_passwords(self, password):
-        print (password.strip().lower() in self.common_passwords_set)
+        return (password.strip().lower() in self.common_passwords_set)
     
     def toggle_password(self):
         if self.password_entry.cget('show') == '*':
             self.password_entry.config(show='')
         else:
             self.password_entry.config(show='*')
+
+    
+
+    #Settings
+    def settings_window(self):
+        settings_win = ttk.Window(
+            themename="superhero", 
+            title="Settings", 
+            size=(400, 300)
+            )
+        
+        settings_win.configure(bg=settings_win.style.colors.bg)
+
+        settings_title = ttk.Label(
+            settings_win, 
+            text="Settings", 
+            font=("Arial", 18), 
+            bootstyle="success",
+            foreground="white",
+            background=settings_win.style.colors.bg
+            )
+        
+        settings_title.pack(
+            side=TOP, 
+            pady=20
+            )
+
+        # Settings content can be added here
+        settings_label = ttk.Label(
+            settings_win,
+            bootstyle="success",
+            text="Settings will be available soon.",
+            font=("Arial", 14),
+            foreground="white",
+            background=settings_win.style.colors.bg
+        )
+        settings_label.pack(
+            padx=20, 
+            pady=20
+        )
+
+    # Information area
+    def info_window(self):
+        info_win = ttk.Window(
+            themename="superhero", 
+            title="Information", 
+            size=(600, 400)
+            )
+        
+        info_win.configure(bg=info_win.style.colors.bg)
+
+        info_title = ttk.Label(
+            info_win, 
+            text="Password Checker Information", 
+            font=("Arial", 18), 
+            bootstyle="success",
+            foreground="white",
+            background=info_win.style.colors.bg
+            )
+        
+        info_title.pack(
+            side=TOP, 
+            pady=20
+            )
+
+        info_label = ttk.Label(
+            info_win,
+            bootstyle="success",
+            text="This is a password checker application.\n\n"
+                "It checks the strength of your password based on \nvarious criteria including whether the password is a \ncommon one. You can also generate a strong \npassword and save it to your clipboard.",
+            font=("Arial", 14),
+            foreground="white",
+            background=info_win.style.colors.bg
+        )
+        info_label.pack(
+            padx=20, 
+            pady=20
+            )
 
 
 if __name__ == "__main__":
