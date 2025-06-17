@@ -251,7 +251,7 @@ class PasswordChecker(ttk.Frame):
         self.settings_button.pack(
             side=LEFT,
             padx=20
-        )
+            )
 
         # Information button
         self.info_button = ttk.Button(
@@ -328,7 +328,7 @@ class PasswordChecker(ttk.Frame):
             secrets.choice(uppers),
             secrets.choice(digits),
             secrets.choice(punctuation)
-        ]
+            ]
         
         # Fill the rest of the password with random characters
         all_characters = lowers + uppers + digits + punctuation
@@ -359,26 +359,34 @@ class PasswordChecker(ttk.Frame):
     
 
     def settings_window(self):
+
+        
+
+        current_theme = self.winfo_toplevel().style.theme.name
         settings_win = ttk.Window(
-            themename="superhero", 
+            themename=current_theme,
             title="Settings", 
             size=(600, 400)
-        )
+            )
         settings_win.configure(bg=settings_win.style.colors.bg)
+
+        if current_theme in ["superhero"]:
+            text_color = "white"
+        else:
+            text_color = "black"
 
         settings_title = ttk.Label(
             settings_win, 
             text="Settings", 
             font=("Arial", 18), 
             bootstyle="success",
-            foreground="white",
+            foreground=text_color,
             background=settings_win.style.colors.bg
         )
         settings_title.pack(
             side=TOP, 
             pady=20
         )
-
         
         settings_frame = ttk.Frame(settings_win)
         settings_frame.pack(
@@ -403,83 +411,67 @@ class PasswordChecker(ttk.Frame):
             text="Dark Mode",
             variable=dark_mode_var,
             command=toggle_dark_mode
-        )
+            )
         settings_win.dark_mode.pack(
             side=TOP,
             padx=20, 
             pady=20,
             expand=True
-        )
+            )
 
-    # Information window
+    # Information window        
     def info_window(self):
+
+        
         current_theme = self.winfo_toplevel().style.theme.name
         info_win = ttk.Window(
             themename=current_theme,
-            title="Information", 
+            title="Information",
             size=(800, 600)
             )
-        info_win.configure(background=info_win.style.colors.bg)
+        info_win.configure(bg=info_win.style.colors.bg)
+
+        # Choose text color based on theme
+        if current_theme in ["superhero"]:
+            text_color = "white"
+        else:
+            text_color = "black"
 
         info_title = ttk.Label(
-            info_win, 
-            text="Password Checker Information", 
-            font=("Arial", 18), 
+            info_win,
+            text="Password Checker Information",
+            font=("Arial", 18),
             bootstyle="success",
-            foreground="white",
+            foreground=text_color,
             background=info_win.style.colors.bg
             )
-        
-def info_window(self):
-    current_theme = self.winfo_toplevel().style.theme.name
-    info_win = ttk.Window(
-        themename=current_theme,
-        title="Information",
-        size=(800, 600)
-        )
-    info_win.configure(bg=info_win.style.colors.bg)
+        info_title.pack(
+            side=TOP,
+            pady=20
+            )
 
-    # Choose text color based on theme
-    if current_theme in ["superhero", "darkly", "cyborg", "solar", "vapor"]:
-        text_color = "black"
-    else:
-        text_color = "white"
-
-    info_title = ttk.Label(
-        info_win,
-        text="Password Checker Information",
-        font=("Arial", 18),
-        bootstyle="success",
-        foreground=text_color,
-        background=info_win.style.colors.bg
-        )
-    info_title.pack(
-        side=TOP,
-        pady=20
-        )
-
-    info_label = ttk.Label(
-        info_win,
-        bootstyle="success",
-        text="Welcome to my password checker app\n"
-             "Created by Angus Briscoe\n\n"
-             "The app checks whether a password is considered safe based on various criteria including whether the password is a common one. "
-             "You can also generate a strong password and save it to your clipboard.\n\n"
-             "Settings may be changed in the settings window.\n\n"
-             "For more information, please visit the GitHub repository.",
-        font=("Arial", 14),
-        foreground=text_color,
-        background=info_win.style.colors.bg
-        )
-    info_label.pack(
-        padx=20,
-        pady=20
-        )
+        info_label = ttk.Label(
+            info_win,
+            bootstyle="success",
+            text="Welcome to my password checker app\n"
+                "Created by Angus Briscoe\n\n"
+                "The app checks whether a password is considered safe based on various criteria including whether the password is a common one. "
+                "You can also generate a strong password and save it to your clipboard.\n\n"
+                "Settings may be changed in the settings window.\n\n"
+                "For more information, please visit the GitHub repository.",
+            font=("Arial", 14),
+            foreground=text_color,
+            background=info_win.style.colors.bg
+            )
+        info_label.pack(
+            padx=20,
+            pady=20
+            )
 
 if __name__ == "__main__":
     app = ttk.Window(themename="superhero",
-                    title="Password Checker", 
-                    size=(1080, 840),
-                    minsize=(800, 800))
+    title="Password Checker", 
+    size=(1080, 840),
+    minsize=(800, 800))
     PasswordChecker(app)
     app.mainloop()
