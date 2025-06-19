@@ -36,7 +36,7 @@ class PasswordChecker(ttk.Frame):
         self.title_bar = ttk.Frame(
             self, 
             bootstyle='success', 
-            height=60
+            height=70
             )
         self.title_bar.pack(
             side=TOP, 
@@ -68,9 +68,9 @@ class PasswordChecker(ttk.Frame):
             side=TOP,
             fill='x', 
             padx=0, 
-            pady=(0, 20)
+            pady=(20, 40)
             )
-
+        
         # Instruction label
         self.instruction = ttk.Label(
             self,
@@ -272,6 +272,14 @@ class PasswordChecker(ttk.Frame):
         password_score = 0
         password_issues = []
 
+        if not password:
+            self.password_issues_label.config(
+                text="Password cannot be empty",
+                bootstyle="DANGER"
+                )
+            self.password_strength['value'] = 0
+            return
+
         checks = [
             (r".{8,}", 3, "Password must be at least 8 characters long"),
             (r"(?=.*[A-Z])", 2, "Password must contain at least one uppercase letter"),
@@ -359,9 +367,6 @@ class PasswordChecker(ttk.Frame):
     
 
     def settings_window(self):
-
-        
-
         current_theme = self.winfo_toplevel().style.theme.name
         settings_win = ttk.Window(
             themename=current_theme,
@@ -421,28 +426,26 @@ class PasswordChecker(ttk.Frame):
 
     # Information window        
     def info_window(self):
-
-        
         current_theme = self.winfo_toplevel().style.theme.name
         info_win = ttk.Window(
             themename=current_theme,
             title="Information",
             size=(800, 600)
             )
+        
         info_win.configure(bg=info_win.style.colors.bg)
 
-        # Choose text color based on theme
         if current_theme in ["superhero"]:
-            text_color = "white"
+            text_colour = "white"
         else:
-            text_color = "black"
+            text_colour = "black"
 
         info_title = ttk.Label(
             info_win,
             text="Password Checker Information",
             font=("Arial", 18),
             bootstyle="success",
-            foreground=text_color,
+            foreground=text_colour,
             background=info_win.style.colors.bg
             )
         info_title.pack(
@@ -460,7 +463,7 @@ class PasswordChecker(ttk.Frame):
                 "Settings may be changed in the settings window.\n\n"
                 "For more information, please visit the GitHub repository.",
             font=("Arial", 14),
-            foreground=text_color,
+            foreground=text_colour,
             background=info_win.style.colors.bg
             )
         info_label.pack(
@@ -472,6 +475,7 @@ if __name__ == "__main__":
     app = ttk.Window(themename="superhero",
     title="Password Checker", 
     size=(1080, 840),
-    minsize=(800, 800))
+    resizable=(False, False)
+    )
     PasswordChecker(app)
     app.mainloop()
