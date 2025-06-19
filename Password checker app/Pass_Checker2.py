@@ -57,40 +57,46 @@ class PasswordChecker(ttk.Frame):
             side=TOP, 
             pady=10
             )
-
-        # Invisable frame for spacing
-        self.invisible_frame = ttk.Frame(
-            self, 
-            borderwidth=0, 
-            relief="flat"
-            )
-        self.invisible_frame.pack(
-            side=TOP,
-            fill='x', 
-            padx=0, 
-            pady=(20, 40)
-            )
         
+        # Main frame for everything up to issues
+        self.main_frame = ttk.Frame(
+            self,
+            borderwidth=10,
+            relief=SOLID,
+            padding=(20, 10),
+        )
+        self.main_frame.pack(
+            side=TOP,
+            fill='x',
+            padx=60,
+            pady=(40,0)
+            )
+
         # Instruction label
         self.instruction = ttk.Label(
-            self,
+            self.main_frame,
             text="Enter your password:", 
             font=("Arial", 14)
             )
         self.instruction.pack(
             side=TOP, 
             padx=20, 
-            pady=(0, 10)
+            pady=(10, 10)
             )
             
         # Password entry frame
-        self.password_entry_frame = ttk.Frame(self)
+        self.password_entry_frame = ttk.Frame(
+            self.main_frame
+            )
         self.password_entry_frame.pack(
             side=TOP,
-            padx=20,
-            pady=(0, 10),
+            anchor=CENTER,
+            pady=10,
             fill='x'
             )
+
+        self.password_entry_frame.columnconfigure(0, weight=1)  # Entry column (center)
+        self.password_entry_frame.columnconfigure(1, weight=0)  # Checkbox column (right)
 
         # Password entry field
         self.password_entry = ttk.Entry(
@@ -98,20 +104,17 @@ class PasswordChecker(ttk.Frame):
             font=("Arial", 16),         
             bootstyle="success", 
             show="*",
-            width=24
+            width=10
             )              
-        self.password_entry.pack(
-            side=LEFT,
-            fill='x',
-            expand=True,
-            padx=2,
-            pady=2
+        self.password_entry.grid(
+            row=0,
+            column=0,
+            sticky="ew",
+            padx=(230,10)
             )
-
         self.password_entry.bind("<Return>", lambda event: self.check_password())
-        
-        self.show_password_var = ttk.BooleanVar(value=False)
 
+        self.show_password_var = ttk.BooleanVar(value=False)
         # Show password checkbox
         self.show_password_check = ttk.Checkbutton(
             self.password_entry_frame,
@@ -120,17 +123,21 @@ class PasswordChecker(ttk.Frame):
             command=self.toggle_password,
             bootstyle="success-toolbutton"
             )
-        self.show_password_check.pack(
-            side=LEFT, 
-            padx=5
-            )
+        self.show_password_check.grid(
+            row=0,
+            column=1, 
+            sticky=E,
+            padx=(0, 130)
+            )   
 
 
        # Button frame
-        self.button_frame = ttk.Frame(self)
+        self.button_frame = ttk.Frame(
+            self.main_frame
+        )
         self.button_frame.pack(
             side=TOP, 
-            pady=(10, 20),
+            pady=(10,20),
             )   
 
         # Check password button
@@ -177,7 +184,7 @@ class PasswordChecker(ttk.Frame):
 
         # Password length label
         self.password_length_label = ttk.Label(
-            self, 
+            self.main_frame, 
             text="Password Length: 8", 
             font=("Arial", 14)
             )
@@ -189,7 +196,7 @@ class PasswordChecker(ttk.Frame):
 
         # Password length slider
         self.password_length = ttk.Scale(
-            self, 
+            self.main_frame, 
             from_=8, 
             to=24, 
             orient=HORIZONTAL,
@@ -201,12 +208,12 @@ class PasswordChecker(ttk.Frame):
         self.password_length.pack(
             side=TOP, 
             padx=0, 
-            pady=(0, 40) 
+            pady=(10, 40) 
             )
 
         # Progress bar
         self.password_strength = ttk.Progressbar(
-            self, 
+            self.main_frame, 
             orient=HORIZONTAL, 
             length=600, 
             bootstyle="success"
@@ -227,7 +234,7 @@ class PasswordChecker(ttk.Frame):
         self.password_issues_label.pack(
             side=TOP, 
             padx=20, 
-            pady=(0, 20)
+            pady=(20, 20)
             )
         
         # Bottom frame for buttons
@@ -361,10 +368,13 @@ class PasswordChecker(ttk.Frame):
     def toggle_password(self):
         if self.password_entry.cget('show') == '*':
             self.password_entry.config(show='')
+            self.show_password_check.config(text="Hide password ")
         else:
             self.password_entry.config(show='*')
+            self.show_password_check.config(text="Show password")
 
-    
+    def check_for_secrets(self, password):
+        return
 
     def settings_window(self):
         current_theme = self.winfo_toplevel().style.theme.name
