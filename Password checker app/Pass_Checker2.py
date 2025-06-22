@@ -607,10 +607,23 @@ class PasswordChecker(ttk.Frame):
 
         pwned_password = ttk.Checkbutton(
             self.settings_win,
-            text="Check password against pwned database",
+            text="Check password against pwned database (internet required)",
             variable=self.pwning_password_var
         )
         pwned_password.pack(pady=10)
+
+        # Close button for settings window
+        close_btn = ttk.Button(
+            self.settings_win,
+            text="Close",
+            command=self.settings_win.destroy,
+            bootstyle="danger"
+        )
+        close_btn.pack(
+            pady=20,
+            padx=20,
+            side = RIGHT
+        )
 
     def info_window(self):
         if hasattr(self, 'info_win'):
@@ -623,7 +636,7 @@ class PasswordChecker(ttk.Frame):
         current_theme = self.winfo_toplevel().style.theme.name
         self.info_win = ttk.Toplevel(self)
         self.info_win.title("Information")
-        self.info_win.geometry("800x600")
+        self.info_win.geometry("800x500")
         self.info_win.resizable(False, False)
 
         if current_theme in ["superhero"]:
@@ -649,7 +662,8 @@ class PasswordChecker(ttk.Frame):
             bootstyle="success",
             text="Welcome to PassCheck\n"
                  "Created by Angus Briscoe\n\n"
-                 "The app checks whether a password is considered safe based on various criteria including whether the password is a common one. "
+                 "The app checks whether a password is considered safe based on\n" 
+                 "various criteria including whether the password is a common one.\n"
                  "You can also generate a strong password and save it to your clipboard.\n\n"
                  "Settings may be changed in the settings window.\n\n"
                  "For more information, please visit the GitHub repository.",
@@ -660,6 +674,19 @@ class PasswordChecker(ttk.Frame):
         info_label.pack(
             padx=20,
             pady=20
+        )
+
+        # Close button for info window
+        close_btn = ttk.Button(
+            self.info_win,
+            text="Close",
+            command=self.info_win.destroy,
+            bootstyle="danger"
+        )
+        close_btn.pack(
+            pady=20,
+            padx=20,
+            side = RIGHT
         )
 
 
