@@ -4,7 +4,8 @@ import re
 import secrets
 import string
 import random
-import math
+import hashlib
+import requests
 
 class PasswordChecker(ttk.Frame):
     def __init__(self, master=None):
@@ -313,6 +314,11 @@ class PasswordChecker(ttk.Frame):
 
         if self.check_for_secrets(password):
             return
+        
+        pwned_count = self.is_password_pwned(password)
+        if pwned_count:
+            password_issues.append(f"This password has appeared in {pwned_count} data breaches! Choose another.")
+            return
 
         checks = [
             (r".{8,}", 3, "Password must be at least 8 characters long"),
@@ -416,6 +422,24 @@ class PasswordChecker(ttk.Frame):
     def common_passwords(self, password):
         return (password.strip().lower() in self.common_passwords_set)
     
+    def is_password_pwned(self, password):
+        # Hash the password with SHA-1
+        sha1 = hashlib.sha1(password.encode('utf-8')).hexdigest().upper()
+        prefix = sha1[:5]
+        suffix = sha1[5:]
+        url = f"https://api.pwnedpasswords.com/range/{prefix}"
+        try:
+            response = requests.get(url, timeout=5)
+            if response.status_code != 200:
+                return False  # API error, treat as not pwned
+            hashes = (line.split(':') for line in response.text.splitlines())
+            for hash_suffix, count in hashes:
+                if hash_suffix == suffix:
+                    return int(count)  # Number of times pwned
+            return 0  # Not found
+        except Exception:
+            return False  # Network error, treat as not pwned
+
     def toggle_password(self):
         # Only toggle if not showing placeholder
         if getattr(self, '_placeholder_active', False):
