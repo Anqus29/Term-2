@@ -4,17 +4,17 @@ import re
 import secrets
 import string
 import random
+import math
 
 class PasswordChecker(ttk.Frame):
     def __init__(self, master=None):
-
         super().__init__(master)
         self.pack(fill='both', expand=True)
         self.load_common_passwords()
+        self.include_symbols_var = ttk.BooleanVar(value=True)
+        self.show_crack_time_var = ttk.BooleanVar(value=True)
         self.create_widgets()
 
-        
-    
     def load_common_passwords(self):
         try:
             with open("Password checker app/common_passwords.txt", "r") as file:
@@ -25,9 +25,8 @@ class PasswordChecker(ttk.Frame):
         except Exception as e:
             print(f"An error occurred while loading common passwords: {e}")
             self.common_passwords_set = set()
-        
-    def create_widgets(self):
 
+    def create_widgets(self):
         # Title frame
         self.title_bar = ttk.Frame(
             self, 
@@ -163,7 +162,7 @@ class PasswordChecker(ttk.Frame):
             padx=5
             )
 
-    # Password length and generate button frame
+        # Password length and generate button frame
         gen_frame = ttk.Frame(self.main_frame)
         gen_frame.pack(
             pady=10
@@ -181,7 +180,7 @@ class PasswordChecker(ttk.Frame):
         self.length_var = ttk.IntVar(value=12)
         self.password_length = ttk.Spinbox(
             gen_frame, 
-            from_=6, 
+            from_=8, 
             to=64, 
             textvariable=self.length_var, 
             width=5, 
@@ -199,7 +198,6 @@ class PasswordChecker(ttk.Frame):
             style = "warning"
             )
         gen_btn.pack(side=LEFT)
-
 
         # Progress bar
         self.password_strength = ttk.Progressbar(
@@ -275,6 +273,7 @@ class PasswordChecker(ttk.Frame):
         password = self.password_entry.get()
         password_score = 0
         password_issues = []
+        include_symbols = self.include_symbols_var.get()
 
         if not password:
             self.password_issues_label.config(
@@ -288,16 +287,17 @@ class PasswordChecker(ttk.Frame):
             (r".{8,}", 3, "Password must be at least 8 characters long"),
             (r"(?=.*[A-Z])", 2, "Password must contain at least one uppercase letter"),
             (r"(?=.*[a-z])", 2, "Password must contain at least one lowercase letter"),
-            (r"(?=.*\d)", 3, "Password must contain at least one digit"),
-            (r"(?=.*[!@#$%^&*-_=+:,.?])", 3, "Password must contain at least one special character"),
+            (r"(?=.*\d)", 3, "Password must contain at least one digit")
         ]
+
+        if include_symbols:
+            checks.append((r"(?=.*[!@#$%^&*()_+={}\[\]:;\"'<>?,./\\|`~])", 3, "Password must contain at least one special character"))
 
         for pattern, score, warning in checks:
             if re.search(pattern, password):
                 password_score += score
             else:
                 password_issues.append(warning)
-
 
         if self.common_passwords(password):
             self.password_issues_label.config(
@@ -311,8 +311,13 @@ class PasswordChecker(ttk.Frame):
             password_issues.append(
                 "For security reasons password must not contain any of the following characters: { } < > [ ] ( ) ; ' \" \\ / |"
                 )
-                                   
-        self.password_strength['value'] = (password_score / 13) * 100
+        
+        total_score = sum(score for _, score, _ in checks)
+        if total_score == 0:
+            self.password_strength['value'] = 0
+        else:
+            self.password_strength['value'] = (password_score / total_score) * 100
+
         if password_issues:
             self.password_issues_label.config(text="\n".join(password_issues),
                 bootstyle="DANGER"
@@ -322,29 +327,39 @@ class PasswordChecker(ttk.Frame):
                 text="No issues found. Password is strong!",
                 bootstyle="SUCCESS"
                 )
-    
+        
+        # Show crack time if enabled
+        if self.show_crack_time_var.get():
+            crack_time = self.estimate_crack_time(password)
+            self.password_issues_label.config(
+                text=f"{self.password_issues_label.cget('text')}\nEstimated crack time: {crack_time}"
+            )
+
     def generate_password(self):
-
         self.password_entry.delete(0, 'end')
-        length = int(self.password_length.get())
+        length = self.length_var.get()
+        include_symbols = self.include_symbols_var.get()
 
-        # Gets possible characters for the password
         lowers = string.ascii_lowercase
         uppers = string.ascii_uppercase
         digits = string.digits
         punctuation = '!@#$%^&*-_=+:,.?'
 
-        # Ensure the password contains at least one of each character type
-        password_characters = [
-            secrets.choice(lowers),
-            secrets.choice(uppers),
-            secrets.choice(digits),
-            secrets.choice(punctuation)
-            ]
-        
-        # Fill the rest of the password with random characters
-        all_characters = lowers + uppers + digits + punctuation
-        password_characters += [secrets.choice(all_characters) for _ in range(length - 4)]
+        required_types = [lowers, uppers, digits]
+        if include_symbols:
+            required_types.append(punctuation)
+
+        # Ensure password length is at least the number of required types
+        if length < len(required_types):
+            length = len(required_types)
+            self.length_var.set(length)
+
+        # Always include at least one of each selected type
+        password_characters = [secrets.choice(charset) for charset in required_types]
+        all_characters = ''.join(required_types)
+
+        # Fill the rest of the password
+        password_characters += [secrets.choice(all_characters) for _ in range(length - len(password_characters))]
         random.shuffle(password_characters)
 
         self.password_entry.insert(0, ''.join(password_characters))
@@ -373,11 +388,63 @@ class PasswordChecker(ttk.Frame):
     def check_for_secrets(self, password):
         return
 
+    def estimate_crack_time(self, password):
+        # Simple estimation: guesses per second (1e10 for offline fast attack)
+        guesses_per_second = 1e10
+        charset = 0
+        if any(c.islower() for c in password):
+            charset += 26
+        if any(c.isupper() for c in password):
+            charset += 26
+        if any(c.isdigit() for c in password):
+            charset += 10
+        if any(c in '!@#$%^&*-_=+:,.?' for c in password):
+            charset += len('!@#$%^&*-_=+:,.?')
+        if charset == 0:
+            return "Very weak"
+        total_guesses = charset ** len(password)
+        seconds = total_guesses / guesses_per_second
+
+        # Cap at 10^20 seconds (~3 trillion trillion years)
+        max_seconds = 10**20
+        if seconds > max_seconds:
+            return "Longer than the heat death of the universe"
+
+        # Convert seconds to human-readable time
+        intervals = [
+            ('trillions of years', 60*60*24*365*1e12),
+            ('billions of years', 60*60*24*365*1e9),
+            ('millions of years', 60*60*24*365*1e6),
+            ('millennia', 60*60*24*365*1000),
+            ('centuries', 60*60*24*365*100),
+            ('decades', 60*60*24*365*10),
+            ('years', 60*60*24*365),
+            ('days', 60*60*24),
+            ('hours', 60*60),
+            ('minutes', 60),
+            ('seconds', 1)
+        ]
+        for name, count in intervals:
+            value = seconds // count
+            if value >= 1:
+                return f"~{int(value)} {name}"
+        return "<1 second"
+
     def settings_window(self):
+        if hasattr(self, 'settings_win') and self.settings_win.winfo_exists():
+            self.settings_win.destroy()
         settings_win = ttk.Toplevel(self)
         settings_win.title("Settings")
-        settings_win.geometry("400x200")
+        settings_win.geometry("600x400")
         settings_win.resizable(False, False)
+
+        settings_title = ttk.Label(
+            settings_win,
+            text="Settings",
+            font=("Arial", 18),
+            bootstyle="success"
+            )
+        settings_title.pack(pady=20)
 
         style = self.winfo_toplevel().style
         theme_names = style.theme_names()
@@ -394,17 +461,87 @@ class PasswordChecker(ttk.Frame):
         self.theme_map = theme_map
         self.theme_combo.bind("<<ComboboxSelected>>", self.change_theme)
 
+        symbols_check = ttk.Checkbutton(
+            settings_win,
+            text="Include Symbols in Password",
+            variable=self.include_symbols_var
+        )
+        symbols_check.pack(pady=30)
+
+        crack_time_check = ttk.Checkbutton(
+            settings_win,
+            text="Show password strength as crack time",
+            variable=self.show_crack_time_var
+        )
+        crack_time_check.pack(pady=10)
 
     # Information window        
+    def settings_window(self):
+        if hasattr(self, 'settings_win'):
+            try:
+                if self.settings_win.winfo_exists():
+                    self.settings_win.destroy()
+            except Exception:
+                pass  # Window is already destroyed
+
+        self.settings_win = ttk.Toplevel(self)
+        self.settings_win.title("Settings")
+        self.settings_win.geometry("600x400")
+        self.settings_win.resizable(False, False)
+
+        settings_title = ttk.Label(
+            self.settings_win,
+            text="Settings",
+            font=("Arial", 18),
+            bootstyle="success"
+            )
+        settings_title.pack(pady=20)
+
+        style = self.winfo_toplevel().style
+        theme_names = style.theme_names()
+        themes = [theme.capitalize() for theme in theme_names]
+        theme_map = dict(zip(themes, theme_names))  # Map capitalized to original
+
+        theme_label = ttk.Label(self.settings_win, text="Select Theme:")
+        theme_label.pack(pady=(20, 5))
+
+        self.theme_combo = ttk.Combobox(self.settings_win, values=themes, state="readonly", width=20)
+        self.theme_combo.set(style.theme.name.capitalize())
+        self.theme_combo.pack(pady=5)
+
+        self.theme_map = theme_map
+        self.theme_combo.bind("<<ComboboxSelected>>", self.change_theme)
+
+        symbols_check = ttk.Checkbutton(
+            self.settings_win,
+            text="Include Symbols in Password",
+            variable=self.include_symbols_var
+        )
+        symbols_check.pack(pady=30)
+
+        crack_time_check = ttk.Checkbutton(
+            self.settings_win,
+            text="Show password strength as crack time",
+            variable=self.show_crack_time_var
+        )
+        crack_time_check.pack(pady=10)
+
     def info_window(self):
+        if hasattr(self, 'info_win'):
+            try:
+                if self.info_win.winfo_exists():
+                    self.info_win.destroy()
+            except Exception:
+                pass  # Window is already destroyed
+
         current_theme = self.winfo_toplevel().style.theme.name
-        info_win = ttk.Window(
+        self.info_win = ttk.Window(
             themename=current_theme,
             title="Information",
             size=(800, 600)
             )
         
-        info_win.configure(bg=info_win.style.colors.bg)
+        self.info_win.configure(bg=self.info_win.style.colors.bg)
 
         if current_theme in ["superhero"]:
             text_colour = "white"
@@ -412,12 +549,12 @@ class PasswordChecker(ttk.Frame):
             text_colour = "black"
 
         info_title = ttk.Label(
-            info_win,
+            self.info_win,
             text="Password Checker Information",
             font=("Arial", 18),
             bootstyle="success",
             foreground=text_colour,
-            background=info_win.style.colors.bg
+            background=self.info_win.style.colors.bg
             )
         info_title.pack(
             side=TOP,
@@ -425,7 +562,7 @@ class PasswordChecker(ttk.Frame):
             )
 
         info_label = ttk.Label(
-            info_win,
+            self.info_win,
             bootstyle="success",
             text="Welcome to my password checker app\n"
                 "Created by Angus Briscoe\n\n"
@@ -435,13 +572,13 @@ class PasswordChecker(ttk.Frame):
                 "For more information, please visit the GitHub repository.",
             font=("Arial", 14),
             foreground=text_colour,
-            background=info_win.style.colors.bg
+            background=self.info_win.style.colors.bg
             )
         info_label.pack(
             padx=20,
             pady=20
             )
-
+        
 if __name__ == "__main__":
     app = ttk.Window(themename="superhero",
     title="Password Checker", 
