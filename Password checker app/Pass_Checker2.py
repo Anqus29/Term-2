@@ -1,6 +1,5 @@
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
-from ttkbootstrap import style
 import re
 import secrets
 import string
@@ -13,7 +12,7 @@ class PasswordChecker(ttk.Frame):
         self.pack(fill='both', expand=True)
         self.load_common_passwords()
         self.create_widgets()
-        colours = "success"
+
         
     
     def load_common_passwords(self):
@@ -27,10 +26,7 @@ class PasswordChecker(ttk.Frame):
             print(f"An error occurred while loading common passwords: {e}")
             self.common_passwords_set = set()
         
-
-    
     def create_widgets(self):
-
 
         # Title frame
         self.title_bar = ttk.Frame(
@@ -130,7 +126,6 @@ class PasswordChecker(ttk.Frame):
             padx=(0, 130)
             )   
 
-
        # Button frame
         self.button_frame = ttk.Frame(
             self.main_frame
@@ -153,20 +148,6 @@ class PasswordChecker(ttk.Frame):
             side=LEFT, 
             padx=5
             )
-
-        # Generate password button
-        self.create_password_button = ttk.Button(
-            self.button_frame, 
-            text="Generate Password", 
-            command=self.generate_password, 
-            bootstyle="warning",
-            padding=10,
-            width=18
-            )
-        self.create_password_button.pack(
-            side=LEFT, 
-            padx=5
-            )
         
         # Save password button
         self.save_password_button = ttk.Button(
@@ -182,34 +163,43 @@ class PasswordChecker(ttk.Frame):
             padx=5
             )
 
-        # Password length label
-        self.password_length_label = ttk.Label(
-            self.main_frame, 
-            text="Password Length: 8", 
-            font=("Arial", 14)
-            )
-        self.password_length_label.pack(
-            side=TOP, 
-            padx=5, 
-            pady=(10, 0)
+    # Password length and generate button frame
+        gen_frame = ttk.Frame(self.main_frame)
+        gen_frame.pack(
+            pady=10
             )
 
-        # Password length slider
-        self.password_length = ttk.Scale(
-            self.main_frame, 
-            from_=8, 
-            to=24, 
-            orient=HORIZONTAL,
-            length=300, 
-            bootstyle="success",
-            command=lambda value: self.password_length_label.config(
-            text="Password Length: " + str(int(float(value))))
+        length_label = ttk.Label(
+            gen_frame, 
+            text="Password Length:",
+            font=("Arial", 14)
+            )
+        length_label.pack(side=LEFT, 
+            padx=(0, 5)
+            )
+
+        self.length_var = ttk.IntVar(value=12)
+        self.password_length = ttk.Spinbox(
+            gen_frame, 
+            from_=6, 
+            to=64, 
+            textvariable=self.length_var, 
+            width=5, 
+            state="readonly"
             )
         self.password_length.pack(
-            side=TOP, 
-            padx=0, 
-            pady=(10, 40) 
+            side=LEFT, 
+            padx=(0, 10)
             )
+
+        gen_btn = ttk.Button(
+            gen_frame, 
+            text="Generate Password", 
+            command=self.generate_password,
+            style = "warning"
+            )
+        gen_btn.pack(side=LEFT)
+
 
         # Progress bar
         self.password_strength = ttk.Progressbar(
@@ -221,7 +211,7 @@ class PasswordChecker(ttk.Frame):
         self.password_strength.pack(
             side=TOP, 
             padx=20, 
-            pady=(0, 20)
+            pady=(20)
             )
 
         # Password issues label
@@ -273,6 +263,13 @@ class PasswordChecker(ttk.Frame):
             side=RIGHT,
             padx=20
             )
+
+    def change_theme(self, event):
+        selected_theme = self.theme_combo.get()
+        # Map back to original theme name
+        original_theme = self.theme_map[selected_theme]
+        style = self.winfo_toplevel().style
+        style.theme_use(original_theme)
 
     def check_password(self):
         password = self.password_entry.get()
@@ -377,62 +374,26 @@ class PasswordChecker(ttk.Frame):
         return
 
     def settings_window(self):
-        current_theme = self.winfo_toplevel().style.theme.name
-        settings_win = ttk.Window(
-            themename=current_theme,
-            title="Settings", 
-            size=(600, 400)
-            )
-        settings_win.configure(bg=settings_win.style.colors.bg)
+        settings_win = ttk.Toplevel(self)
+        settings_win.title("Settings")
+        settings_win.geometry("400x200")
+        settings_win.resizable(False, False)
 
-        if current_theme in ["superhero"]:
-            text_color = "white"
-        else:
-            text_color = "black"
+        style = self.winfo_toplevel().style
+        theme_names = style.theme_names()
+        themes = [theme.capitalize() for theme in theme_names]
+        theme_map = dict(zip(themes, theme_names))  # Map capitalized to original
 
-        settings_title = ttk.Label(
-            settings_win, 
-            text="Settings", 
-            font=("Arial", 18), 
-            bootstyle="success",
-            foreground=text_color,
-            background=settings_win.style.colors.bg
-        )
-        settings_title.pack(
-            side=TOP, 
-            pady=20
-        )
-        
-        settings_frame = ttk.Frame(settings_win)
-        settings_frame.pack(
-            fill=BOTH, 
-            expand=True
-        )
+        theme_label = ttk.Label(settings_win, text="Select Theme:")
+        theme_label.pack(pady=(20, 5))
 
-        dark_mode_var = ttk.BooleanVar(value=self.winfo_toplevel().style.theme.name in ["superhero", "darkly"])
-        def toggle_dark_mode():
-            style = self.winfo_toplevel().style
-            if style.theme.name in ["superhero", "darkly"]:
-                style.theme_use("flatly")  # or another light theme
-                dark_mode_var.set(False)
-            else:
-                style.theme_use("superhero")
-                dark_mode_var.set(True)
+        self.theme_combo = ttk.Combobox(settings_win, values=themes, state="readonly", width=20)
+        self.theme_combo.set(style.theme.name.capitalize())
+        self.theme_combo.pack(pady=5)
 
-    # Dark mode toggle
-        settings_win.dark_mode = ttk.Checkbutton(
-            settings_frame,
-            bootstyle="success-toolbutton",
-            text="Dark Mode",
-            variable=dark_mode_var,
-            command=toggle_dark_mode
-            )
-        settings_win.dark_mode.pack(
-            side=TOP,
-            padx=20, 
-            pady=20,
-            expand=True
-            )
+        self.theme_map = theme_map
+        self.theme_combo.bind("<<ComboboxSelected>>", self.change_theme)
+
 
     # Information window        
     def info_window(self):
