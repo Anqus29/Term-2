@@ -14,6 +14,7 @@ class PasswordChecker(ttk.Frame):
         self.load_common_passwords()
         self.include_symbols_var = ttk.BooleanVar(value=True)
         self.show_crack_time_var = ttk.BooleanVar(value=True)
+        self.pwning_password_var = ttk.BooleanVar(value=True)
         self.create_widgets()
 
     def load_common_passwords(self):
@@ -122,7 +123,6 @@ class PasswordChecker(ttk.Frame):
         def clear_placeholder(event=None):
             if self._placeholder_active:
                 self.password_entry.delete(0, 'end')
-                # Use the theme's normal foreground for user input
                 fg = self.winfo_toplevel().style.colors.fg
                 self.password_entry.config(foreground=fg, show='*')
                 self._placeholder_active = False
@@ -134,6 +134,7 @@ class PasswordChecker(ttk.Frame):
         set_placeholder()
         self.password_entry.bind('<FocusIn>', clear_placeholder)
         self.password_entry.bind('<FocusOut>', restore_placeholder)
+        self._set_placeholder = set_placeholder  # Save for theme change
 
         self.show_password_var = ttk.BooleanVar(value=False)
         # Show password checkbox
@@ -294,6 +295,9 @@ class PasswordChecker(ttk.Frame):
         original_theme = self.theme_map[selected_theme]
         style = self.winfo_toplevel().style
         style.theme_use(original_theme)
+        # Update placeholder color if active
+        if getattr(self, '_placeholder_active', False):
+            self.password_entry.config(foreground='grey', show='')
 
     def check_password(self):
         password = self.password_entry.get()
@@ -315,9 +319,23 @@ class PasswordChecker(ttk.Frame):
         if self.check_for_secrets(password):
             return
         
-        pwned_count = self.is_password_pwned(password)
-        if pwned_count:
-            password_issues.append(f"This password has appeared in {pwned_count} data breaches! Choose another.")
+        if self.pwning_password_var.get():
+            pwned_count = self.is_password_pwned(password)
+            if pwned_count:
+                password_issues.append(f"This password has appeared in {pwned_count} data breaches! Choose another.")
+                self.password_issues_label.config(
+                    text="\n".join(password_issues),
+                    bootstyle="DANGER"
+                )
+                self.password_strength['value'] = 0
+                return
+
+        if self.common_passwords(password):
+            self.password_issues_label.config(
+                text="This password is too common. Please choose a different one.",
+                bootstyle="DANGER"
+                )
+            self.password_strength['value'] = 0
             return
 
         checks = [
@@ -335,14 +353,6 @@ class PasswordChecker(ttk.Frame):
                 password_score += score
             else:
                 password_issues.append(warning)
-
-        if self.common_passwords(password):
-            self.password_issues_label.config(
-                text="This password is too common. Please choose a different one.",
-                bootstyle="DANGER"
-            )
-            self.password_strength['value'] = 0
-            return
 
         if re.search(r"[{}\[\]()<>\';\"\\\/|]", password):
             password_issues.append(
@@ -423,7 +433,7 @@ class PasswordChecker(ttk.Frame):
         return (password.strip().lower() in self.common_passwords_set)
     
     def is_password_pwned(self, password):
-        # Hash the password with SHA-1
+
         sha1 = hashlib.sha1(password.encode('utf-8')).hexdigest().upper()
         prefix = sha1[:5]
         suffix = sha1[5:]
@@ -432,12 +442,13 @@ class PasswordChecker(ttk.Frame):
             response = requests.get(url, timeout=5)
             if response.status_code != 200:
                 return False  # API error, treat as not pwned
-            hashes = (line.split(':') for line in response.text.splitlines())
-            for hash_suffix, count in hashes:
-                if hash_suffix == suffix:
-                    return int(count)  # Number of times pwned
+            for line in response.text.splitlines():
+                hash_suffix, count = line.split(':')
+                if hash_suffix.strip().upper() == suffix:
+                    return int(count)
             return 0  # Not found
-        except Exception:
+        except Exception as e:
+            print(f"Pwned check failed: {e}")
             return False  # Network error, treat as not pwned
 
     def toggle_password(self):
@@ -457,18 +468,17 @@ class PasswordChecker(ttk.Frame):
             ("bean", "BEANNNNN"),
             ("roman", "Warning do not approach"),
             ("angus", "The best of course"),
-            ("finn", "Warning ")
-            ("fong", "Its Fonging time")
+            ("finn", "Warning "),
+            ("fong", "Its Fonging time"),
             ("starwars", "May the force be with you"),
             ("password", "Please do not use 'password' as a password"),
             ("123456", "Come on, you can do better than that!"),
             ("qwerty", "Everyone has a keyboard"),
-            ("precious", "One password to rule them all? Not a good idea!")
+            ("precious", "One password to rule them all? Not a good idea!"),
             ("pokemon", "Gotta catch 'em all, but not with this password!"),
             ("never gonna give you up", "Never gonna give you up, never gonna let you down!"),
             ("minecraft", "Crafting a better password is a good idea!")
-            ]
-        
+        ]
         for secret_code, response in secrets:
             if secret_code.lower() in password.lower():
                 self.password_issues_label.config(
@@ -476,9 +486,7 @@ class PasswordChecker(ttk.Frame):
                     bootstyle="DANGER"
                 )
                 return True
-            else:
-                return False
-
+        return False
 
     def estimate_crack_time(self, password):
         # Simple estimation: guesses per second (1e10 for offline fast attack)
@@ -553,7 +561,7 @@ class PasswordChecker(ttk.Frame):
 
         self.theme_combo = ttk.Combobox(self.settings_win, values=themes, state="readonly", width=20)
         self.theme_combo.set(style.theme.name.capitalize())
-        self.theme_combo.pack(pady=5)
+        self.theme_combo.pack(pady=10)
 
         self.theme_map = theme_map
         self.theme_combo.bind("<<ComboboxSelected>>", self.change_theme)
@@ -562,15 +570,22 @@ class PasswordChecker(ttk.Frame):
             self.settings_win,
             text="Include Symbols in Password",
             variable=self.include_symbols_var
-        )
-        symbols_check.pack(pady=30)
+            )
+        symbols_check.pack(pady=(30, 10))
 
         crack_time_check = ttk.Checkbutton(
             self.settings_win,
             text="Show password strength as crack time",
             variable=self.show_crack_time_var
-        )
+            )
         crack_time_check.pack(pady=10)
+
+        pwned_password = ttk.Checkbutton(
+            self.settings_win,
+            text="Check password against pwned database",
+            variable=self.pwning_password_var
+            )
+        pwned_password.pack(pady=10)
 
     def info_window(self):
         if hasattr(self, 'info_win'):
@@ -581,13 +596,10 @@ class PasswordChecker(ttk.Frame):
                 pass  # Window is already destroyed
 
         current_theme = self.winfo_toplevel().style.theme.name
-        self.info_win = ttk.Window(
-            themename=current_theme,
-            title="Information",
-            size=(800, 600)
-            )
-        
-        self.info_win.configure(bg=self.info_win.style.colors.bg)
+        self.info_win = ttk.Toplevel(self)
+        self.info_win.title("Information")
+        self.info_win.geometry("800x600")
+        self.info_win.resizable(False, False)
 
         if current_theme in ["superhero"]:
             text_colour = "white"
