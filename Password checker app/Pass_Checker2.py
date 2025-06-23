@@ -492,20 +492,6 @@ class PasswordChecker(ttk.Frame):
             ("never gonna give you up", "Never gonna give you up, never gonna let you down!"),
             ("minecraft", "Crafting a better password is a good idea!"),
             ("pikachu", "Gotta catch a better password!"),
-            ("hogwarts", "Alohomora won’t unlock your security!"),
-            ("batman", "Even superheroes need stronger passwords!"),
-            ("frodo", "One password to rule them all? Not a good idea!"),
-            ("winteriscoming", "A Lannister always pays his debts, but don’t pay with your password!"),
-            ("creeper", "That’s a blocky password—try something less common!"),
-            ("spongebob", "Is mayonnaise a password? No!"),
-            ("dundermifflin", "Bears. Beets. Battlestar Galactica. Bad password."),
-            ("mario", "It’s-a me, a weak password!"),
-            ("tardis", "Don’t let the Daleks exterminate your security!"),
-            ("heisenberg", "Say my name… but not as your password!"),
-            ("disney", "Let it go… and pick a stronger password!"),
-            ("sus", "That password is kinda sus…"),
-            ("fortnite", "Victory Royale? Not with this password!"),
-            ("zelda", "It’s dangerous to go alone—use a better password!"),
         ]
         for secret_code, response in secrets:
             if secret_code.lower() in password.lower():
@@ -565,7 +551,7 @@ class PasswordChecker(ttk.Frame):
 
         self.settings_win = ttk.Toplevel(self)
         self.settings_win.title("Settings")
-        self.settings_win.geometry("600x400")
+        self.settings_win.geometry("600x450")
         self.settings_win.resizable(False, False)
 
         settings_title = ttk.Label(
@@ -607,7 +593,7 @@ class PasswordChecker(ttk.Frame):
 
         pwned_password = ttk.Checkbutton(
             self.settings_win,
-            text="Check password against pwned database (internet required)",
+            text="Check password against pwned database (internet required)\n Disable if lagging occurs",
             variable=self.pwning_password_var
         )
         pwned_password.pack(pady=10)
@@ -646,7 +632,7 @@ class PasswordChecker(ttk.Frame):
 
         info_title = ttk.Label(
             self.info_win,
-            text="Password Checker Information",
+            text="About PassCheck",
             font=("Arial", 18),
             bootstyle="success",
             foreground=text_colour,
