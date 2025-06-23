@@ -1,3 +1,4 @@
+![ChatGPT Image](https://github.com/Anqus29/Pass-check-Password-Checker/blob/idk/ChatGPT%20Image%20Jun%2023%2C%202025%2C%2004_25_20%20PM.png?raw=true)
 # PassCheck
 
 **PassCheck** is a Python application that helps users generate strong, secure passwords and check the strength and safety of their chosen passwords. It is designed to address the common cybersecurity issue of weak and reused passwords.
